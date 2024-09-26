@@ -21,6 +21,12 @@ class Feature(models.Model):
 
     def __str__(self):
         return f"{self.type} ({self.start}-{self.end}) on {self.sequence.contig}"
+    class Meta:
+        indexes = [
+            models.Index(fields=['sequence', 'type']),
+            models.Index(fields=['sequence', 'start', 'end']),
+            models.Index(fields=['sequence', 'attributes'], name='feature_attributes_idx'),
+        ]
 
 class NucleotideData(models.Model):
     sequence = models.ForeignKey(Sequence, on_delete=models.CASCADE, related_name='nucleotide_data')

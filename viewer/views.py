@@ -260,3 +260,52 @@ def get_feature_data(request, contig_name):
             'description': feature.attributes.get('product', '') if feature.attributes else '',
         }
     })
+
+
+def search_features(request, contig_name):
+    sequence = get_object_or_404(Sequence, contig=contig_name)
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({'features': []})
+    
+    # Search features by type or description (attributes->'product')
+    features = Feature.objects.filter(sequence=sequence).filter(
+        Q(type__icontains=query) |
+        Q(attributes__product__icontains=query)
+    ).values('id', 'type', 'start', 'end', 'attributes')[:100]  # Limit results for performance
+    
+    features_list = []
+    for feature in features:
+        attributes = feature['attributes'] or {}
+        features_list.append({
+            'id': feature['id'],
+            'type': feature['type'],
+            'start': feature['start'],
+            'end': feature['end'],
+            'description': attributes.get('product', ''),
+        })
+    
+    return JsonResponse({'features': features_list})
+
+def feature_info(request, contig_name):
+    sequence = get_object_or_404(Sequence, contig=contig_name)
+    feature_id = request.GET.get('feature_id')
+    
+    if not feature_id:
+        return JsonResponse({'error': 'No feature ID provided'}, status=400)
+    
+    try:
+        feature = Feature.objects.get(id=feature_id, sequence=sequence)
+    except Feature.DoesNotExist:
+        return JsonResponse({'error': 'Feature not found'}, status=404)
+    
+    feature_data = {
+        'id': feature.id,
+        'type': feature.type,
+        'start': feature.start,
+        'end': feature.end,
+        'description': feature.attributes.get('product', '') if feature.attributes else '',
+    }
+    
+    return JsonResponse({'feature': feature_data})
