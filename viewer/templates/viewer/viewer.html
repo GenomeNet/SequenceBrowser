@@ -7,6 +7,11 @@
 {% block content %}
 <h2>Viewing {{ sequence.contig }}: positions {{ start }} to {{ end }}</h2>
 
+<!-- Include D3.js and the updated script -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="{% static 'js/heatmap_viewer.js' %}"></script>
+<meta name="contig" content="{{ sequence.contig }}">
+
 <div class="row">
     <div class="col-md-9">
         <!-- Main content -->
@@ -44,7 +49,7 @@
         </div>
 
         <div id="sequence-viewer" class="mb-4"></div>
-
+    
         <!-- All Features Table -->
         <h3>All Features on {{ sequence.contig }}</h3>
         <table class="table table-striped data-table" id="all-features-table">
@@ -62,7 +67,6 @@
                     {% for data_source in data_sources %}
                         <th>Mean ({{ data_source }})</th>
                         <th>SD ({{ data_source }})</th>
-                        <th>Sparkline ({{ data_source }})</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -82,15 +86,6 @@
                         {% with stats=feature.summary_stats|get_item:data_source %}
                             <td>{{ stats.mean_value|floatformat:2|default:'-' }}</td>
                             <td>{{ stats.standard_deviation|floatformat:2|default:'-' }}</td>
-                            <td>
-                                {% if stats.sparkline_data %}
-                                    <canvas id="sparkline-{{ feature.id }}-{{ data_source }}" width="100" height="30"
-                                        data-sparkline='{{ stats.sparkline_data|safe }}'>
-                                    </canvas>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
                         {% endwith %}
                     {% endfor %}
                 </tr>
@@ -120,9 +115,15 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Feature Data Plot Section -->
+        <h4>Feature Data</h4>
+        <p>Select a feature in the table to view its data tracks.</p>
+        <div id="feature-plot-container" style="width: 100%; height: 400px;"></div>
     </div>
 </div>
 
+<!-- Existing scripts -->
 <script src="{% static 'js/genome_viewer.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -138,7 +139,7 @@
         const nucleotideData = {{ nucleotide_data }};
         const interactions = JSON.parse('{{ interactions_json|escapejs }}');
         const colorBy = '{{ color_by }}';
-
+       
         initGenomeViewer(
             sequence,
             startPos,
@@ -151,38 +152,6 @@
             colorBy,
             interactions
         );
-
-        const sparklineCanvases = document.querySelectorAll('canvas[id^="sparkline-"]');
-        sparklineCanvases.forEach(function(canvas) {
-            var ctx = canvas.getContext('2d');
-            var sparklineData = JSON.parse(canvas.getAttribute('data-sparkline'));
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: sparklineData.map((_, i) => i + 1),
-                    datasets: [{
-                        data: sparklineData,
-                        borderColor: 'blue',
-                        fill: false,
-                        pointRadius: 0,
-                    }]
-                },
-                options: {
-                    responsive: false,
-                    scales: {
-                        x: { display: false },
-                        y: { display: false }
-                    },
-                    elements: {
-                        line: { tension: 0 }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false }
-                    }
-                }
-            });
-        });
     });
 </script>
 <style>
@@ -269,8 +238,8 @@
         display: none;
     }
 
-    .selected-feature-row {
-        background-color: #ffeeba; /* Highlight selected feature row */
+    .selected-row {
+        background-color: #ffeeba;
     }
 
     /* Adjust genome navigator */
@@ -294,6 +263,13 @@
         top: 0;
         height: 100%;
         background-color: rgba(0, 0, 255, 0.5);
+    }
+
+    /* Adjust heatmap-container to fit the new orientation */
+    #heatmap-container {
+        width: 100%;
+        height: 500px; /* Adjust height as needed */
+        overflow: auto;
     }
 </style>
 {% endblock %}

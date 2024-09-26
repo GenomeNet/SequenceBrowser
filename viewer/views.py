@@ -4,6 +4,7 @@ import json
 from django.db.models import Q
 from django.db.models.functions import Cast
 from django.db.models import FloatField
+from django.http import JsonResponse
 
 def index(request):
     sequences = Sequence.objects.all()
@@ -96,36 +97,9 @@ def viewer(request, contig_name):
         summary_stats = feature.summary_stats.all()
         stats_by_source = {}
         for stat in summary_stats:
-            # Prepare sparkline data
-            # Fetch NucleotideData for this feature and data_source
-            nucleotide_data_qs = NucleotideData.objects.filter(
-                sequence=feature.sequence,
-                position__gte=feature.start,
-                position__lte=feature.end,
-                data_source=stat.data_source
-            ).order_by('position')
-
-            # Get values and positions
-            values = list(nucleotide_data_qs.values_list('value', flat=True))
-            positions = list(nucleotide_data_qs.values_list('position', flat=True))
-
-            # Sample or bin the data to reduce size
-            max_points = 50  # Limit to 50 points for the sparkline
-            total_points = len(values)
-            if total_points > max_points:
-                # Calculate bin size
-                bin_size = total_points // max_points
-                binned_values = [
-                    sum(values[i:i+bin_size]) / bin_size
-                    for i in range(0, total_points, bin_size)
-                ]
-            else:
-                binned_values = values
-
             stats_by_source[stat.data_source] = {
                 'mean_value': stat.mean_value,
                 'standard_deviation': stat.standard_deviation,
-                'sparkline_data': binned_values,
             }
 
         all_features_data.append({
@@ -160,6 +134,27 @@ def viewer(request, contig_name):
         for interaction in interactions
     ]
 
+    # Add this new section to prepare heatmap data
+    heatmap_data = []
+    selected_feature_id = request.GET.get('selected_feature')
+    if selected_feature_id:
+        try:
+            selected_feature = Feature.objects.get(id=selected_feature_id)
+            for data_source in available_data_sources:
+                nucleotide_data = NucleotideData.objects.filter(
+                    sequence=sequence,
+                    position__gte=selected_feature.start,
+                    position__lte=selected_feature.end,
+                    data_source=data_source
+                ).order_by('position')
+                
+                heatmap_data.append({
+                    'name': data_source,
+                    'values': list(nucleotide_data.values('position', 'value'))
+                })
+        except Feature.DoesNotExist:
+            pass
+
     context = {
         'sequence': sequence,
         'sequence_segment': sequence_segment,
@@ -178,5 +173,90 @@ def viewer(request, contig_name):
         'nucleotide_data': json.dumps(nucleotide_data) if nucleotide_data else 'null',
         'interactions_json': json.dumps(interactions_data),
         'data_sources': available_data_sources,  # Pass data sources to the template
+        'heatmap_data': json.dumps(heatmap_data),
+        'selected_feature_id': selected_feature_id,
     }
     return render(request, 'viewer/viewer.html', context)
+
+# View to handle AJAX requests for heatmap data
+def get_heatmap_data(request, contig_name):
+    sequence = get_object_or_404(Sequence, contig=contig_name)
+    feature_id = request.GET.get('feature_id')
+    
+    if not feature_id:
+        return JsonResponse({'error': 'No feature selected'}, status=400)
+    
+    try:
+        feature = Feature.objects.get(id=feature_id)
+    except Feature.DoesNotExist:
+        return JsonResponse({'error': 'Feature not found'}, status=404)
+    
+    available_data_sources = list(sequence.nucleotide_data.values_list('data_source', flat=True).distinct())
+    heatmap_data = []
+    
+    for data_source in available_data_sources:
+        nucleotide_data_qs = NucleotideData.objects.filter(
+            sequence=sequence,
+            position__gte=feature.start,
+            position__lte=feature.end,
+            data_source=data_source
+        ).order_by('position')
+        
+        nucleotide_values = list(nucleotide_data_qs.values('position', 'value'))
+            
+        heatmap_data.append({
+            'name': data_source,
+            'values': nucleotide_values
+        })
+    
+    return JsonResponse({
+        'heatmap_data': heatmap_data,
+        'feature': {
+            'id': feature.id,
+            'start': feature.start,
+            'end': feature.end,
+            'type': feature.type,
+            'description': feature.attributes.get('product', '') if feature.attributes else '',
+        }
+    })
+
+def get_feature_data(request, contig_name):
+    sequence = get_object_or_404(Sequence, contig=contig_name)
+    feature_id = request.GET.get('feature_id')
+
+    if not feature_id:
+        return JsonResponse({'error': 'No feature selected'}, status=400)
+
+    try:
+        feature = Feature.objects.get(id=feature_id)
+    except Feature.DoesNotExist:
+        return JsonResponse({'error': 'Feature not found'}, status=404)
+
+    available_data_sources = list(sequence.nucleotide_data.values_list('data_source', flat=True).distinct())
+    feature_data = []
+
+    for data_source in available_data_sources:
+        nucleotide_data_qs = NucleotideData.objects.filter(
+            sequence=sequence,
+            position__gte=feature.start,
+            position__lte=feature.end,
+            data_source=data_source
+        ).order_by('position')
+
+        nucleotide_values = list(nucleotide_data_qs.values('position', 'value'))
+
+        feature_data.append({
+            'name': data_source,
+            'values': nucleotide_values
+        })
+
+    return JsonResponse({
+        'feature_data': feature_data,
+        'feature': {
+            'id': feature.id,
+            'start': feature.start,
+            'end': feature.end,
+            'type': feature.type,
+            'description': feature.attributes.get('product', '') if feature.attributes else '',
+        }
+    })
