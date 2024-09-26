@@ -43,3 +43,15 @@ class Interaction(models.Model):
 
     def __str__(self):
         return f"Interaction from {self.from_position} to {self.to_position}"
+
+class FeatureSummaryStat(models.Model):
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, related_name='summary_stats')
+    data_source = models.CharField(max_length=100)
+    mean_value = models.FloatField()
+    standard_deviation = models.FloatField()
+
+    class Meta:
+        unique_together = ('feature', 'data_source')
+
+    def __str__(self):
+        return f"Stats for {self.feature} [{self.data_source}]"

@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Sequence, Feature, NucleotideData, Interaction
+from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat
 import json
 from django.db.models import Q
+from django.db.models.functions import Cast
+from django.db.models import FloatField
 
 def index(request):
     sequences = Sequence.objects.all()
@@ -89,6 +91,43 @@ def viewer(request, contig_name):
     all_features_data = []
     for feature in all_features:
         description = feature.attributes.get('product', '') if feature.attributes else ''
+
+        # Fetch related summary statistics
+        summary_stats = feature.summary_stats.all()
+        stats_by_source = {}
+        for stat in summary_stats:
+            # Prepare sparkline data
+            # Fetch NucleotideData for this feature and data_source
+            nucleotide_data_qs = NucleotideData.objects.filter(
+                sequence=feature.sequence,
+                position__gte=feature.start,
+                position__lte=feature.end,
+                data_source=stat.data_source
+            ).order_by('position')
+
+            # Get values and positions
+            values = list(nucleotide_data_qs.values_list('value', flat=True))
+            positions = list(nucleotide_data_qs.values_list('position', flat=True))
+
+            # Sample or bin the data to reduce size
+            max_points = 50  # Limit to 50 points for the sparkline
+            total_points = len(values)
+            if total_points > max_points:
+                # Calculate bin size
+                bin_size = total_points // max_points
+                binned_values = [
+                    sum(values[i:i+bin_size]) / bin_size
+                    for i in range(0, total_points, bin_size)
+                ]
+            else:
+                binned_values = values
+
+            stats_by_source[stat.data_source] = {
+                'mean_value': stat.mean_value,
+                'standard_deviation': stat.standard_deviation,
+                'sparkline_data': binned_values,
+            }
+
         all_features_data.append({
             'id': feature.id,
             'type': feature.type,
@@ -99,6 +138,7 @@ def viewer(request, contig_name):
             'strand': feature.strand,
             'phase': feature.phase,
             'description': description,
+            'summary_stats': stats_by_source,
         })
 
     # Fetch interactions where either from_position or to_position is within the current range
@@ -137,5 +177,6 @@ def viewer(request, contig_name):
         'color_by': color_by,
         'nucleotide_data': json.dumps(nucleotide_data) if nucleotide_data else 'null',
         'interactions_json': json.dumps(interactions_data),
+        'data_sources': available_data_sources,  # Pass data sources to the template
     }
     return render(request, 'viewer/viewer.html', context)

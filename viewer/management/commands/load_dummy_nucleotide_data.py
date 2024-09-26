@@ -57,17 +57,17 @@ class Command(BaseCommand):
             sequence_length = len(sequence.sequence)
             self.stdout.write(f'\nLoading dummy data for sequence "{sequence.contig}" with length {sequence_length}.')
 
-            # Fetch existing nucleotide data to avoid duplicates
+            # Fetch existing nucleotide data **for the specific data source** to avoid duplicates
             existing_positions = set(
-                NucleotideData.objects.filter(sequence=sequence).values_list('position', flat=True)
+                NucleotideData.objects.filter(sequence=sequence, data_source=data_source).values_list('position', flat=True)
             )
-            self.stdout.write(f'Found {len(existing_positions)} existing nucleotide data entries.')
+            self.stdout.write(f'Found {len(existing_positions)} existing nucleotide data entries for data_source "{data_source}".')
 
             # Create dummy data for positions without existing data
             nucleotide_data_bulk = []
             for pos in range(1, sequence_length + 1):
                 if pos in existing_positions:
-                    continue  # Skip positions that already have data
+                    continue  # Skip positions that already have data for this data_source
 
                 value = round(random.uniform(-1, 1), 4)  # Random float between -1 and 1
                 nucleotide_data_bulk.append(NucleotideData(
@@ -81,11 +81,11 @@ class Command(BaseCommand):
                 if len(nucleotide_data_bulk) >= 10000:
                     NucleotideData.objects.bulk_create(nucleotide_data_bulk)
                     nucleotide_data_bulk = []
-                    self.stdout.write(f'  - Loaded data up to position {pos}.')
+                    self.stdout.write(f'  - Loaded data up to position {pos} for data_source "{data_source}".')
 
             # Create any remaining data
             if nucleotide_data_bulk:
                 NucleotideData.objects.bulk_create(nucleotide_data_bulk)
-                self.stdout.write(f'  - Loaded data up to position {sequence_length}.')
+                self.stdout.write(f'  - Loaded data up to position {sequence_length} for data_source "{data_source}".')
 
-            self.stdout.write(self.style.SUCCESS(f'Dummy nucleotide data loading completed for "{sequence.contig}".'))
+            self.stdout.write(self.style.SUCCESS(f'Dummy nucleotide data loading completed for "{sequence.contig}" with data_source "{data_source}".'))

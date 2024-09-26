@@ -1,5 +1,6 @@
 {% extends 'viewer/base.html' %}
 {% load static %}
+{% load custom_tags %}
 
 {% block title %}{{ sequence.contig }} - Genome Sequence Viewer{% endblock %}
 
@@ -58,6 +59,11 @@
                     <th>Strand</th>
                     <th>Phase</th>
                     <th>Description</th>
+                    {% for data_source in data_sources %}
+                        <th>Mean ({{ data_source }})</th>
+                        <th>SD ({{ data_source }})</th>
+                        <th>Sparkline ({{ data_source }})</th>
+                    {% endfor %}
                 </tr>
             </thead>
             <tbody>
@@ -72,6 +78,21 @@
                     <td>{{ feature.strand }}</td>
                     <td>{{ feature.phase }}</td>
                     <td>{{ feature.description }}</td>
+                    {% for data_source in data_sources %}
+                        {% with stats=feature.summary_stats|get_item:data_source %}
+                            <td>{{ stats.mean_value|floatformat:2|default:'-' }}</td>
+                            <td>{{ stats.standard_deviation|floatformat:2|default:'-' }}</td>
+                            <td>
+                                {% if stats.sparkline_data %}
+                                    <canvas id="sparkline-{{ feature.id }}-{{ data_source }}" width="100" height="30"
+                                        data-sparkline='{{ stats.sparkline_data|safe }}'>
+                                    </canvas>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        {% endwith %}
+                    {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -103,6 +124,7 @@
 </div>
 
 <script src="{% static 'js/genome_viewer.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     window.addEventListener('load', function() {
         const sequence = '{{ sequence_segment|escapejs }}';
@@ -129,6 +151,38 @@
             colorBy,
             interactions
         );
+
+        const sparklineCanvases = document.querySelectorAll('canvas[id^="sparkline-"]');
+        sparklineCanvases.forEach(function(canvas) {
+            var ctx = canvas.getContext('2d');
+            var sparklineData = JSON.parse(canvas.getAttribute('data-sparkline'));
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sparklineData.map((_, i) => i + 1),
+                    datasets: [{
+                        data: sparklineData,
+                        borderColor: 'blue',
+                        fill: false,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    elements: {
+                        line: { tension: 0 }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        });
     });
 </script>
 <style>
