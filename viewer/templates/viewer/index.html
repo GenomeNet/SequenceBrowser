@@ -1,0 +1,28 @@
+{% extends 'viewer/base.html' %}
+{% load static %}
+
+{% block title %}Welcome - Genome Sequence Viewer{% endblock %}
+
+{% block content %}
+<h1 class="text-center">Welcome to the Genome Sequence Viewer!</h1>
+<div class="d-flex justify-content-center mt-4">
+    <form action="{% url 'viewer' contig_name='placeholder' %}" method="get" id="contig-form" class="d-flex">
+        <label for="contig-select" class="me-2 align-self-center">Select a Contig:</label>
+        <select class="form-select me-2" name="contig_name" id="contig-select">
+            {% for sequence in sequences %}
+                <option value="{{ sequence.contig }}">{{ sequence.contig }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">View</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('contig-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var contig = document.getElementById('contig-select').value;
+        var url = "{% url 'viewer' contig_name='placeholder' %}".replace('placeholder', encodeURIComponent(contig));
+        window.location.href = url;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'viewer/base.html' %}
+{% load static %}
+
+{% block title %}{{ sequence.contig }} - Genome Sequence Viewer{% endblock %}
+
+{% block content %}
+<h2>Viewing {{ sequence.contig }}: positions {{ start }} to {{ end }}</h2>
+
+<div class="row">
+    <div class="col-md-9">
+        <!-- Main content -->
+
+        <!-- Navigation Buttons -->
+        <div class="d-flex justify-content-between mb-3">
+            <button id="back-button" class="btn btn-primary" {% if start <= 0 %}disabled{% endif %}>Backward</button>
+            <button id="forward-button" class="btn btn-primary" {% if end >= sequence_length %}disabled{% endif %}>Forward</button>
+        </div>
+
+        <!-- Color Scheme Selector -->
+        <form id="color-scheme-form" class="mb-3">
+            <label for="colorSchemeSelect">Color by:</label>
+            <select id="colorSchemeSelect" name="color_by" class="form-select" style="width: auto; display: inline-block;">
+                <option value="nucleotide" {% if color_by == 'nucleotide' %}selected{% endif %}>Nucleotide</option>
+                {% for data_source in available_data_sources %}
+                    <option value="{{ data_source }}" {% if color_by == data_source %}selected{% endif %}>{{ data_source }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading data, please wait...</p>
+        </div>
+
+        <div id="genome-navigator" class="mb-3 text-end">
+            <div class="navigator-line">
+                <span class="navigator-range" style="left: {{ navigator_percent_start }}%; width: {{ navigator_percent_width }}%;"></span>
+            </div>
+            <small>Genome Position Indicator</small>
+        </div>
+
+        <div id="sequence-viewer" class="mb-4"></div>
+
+        <!-- All Features Table -->
+        <h3>All Features on {{ sequence.contig }}</h3>
+        <table class="table table-striped data-table" id="all-features-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Score</th>
+                    <th>Strand</th>
+                    <th>Phase</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature in all_features %}
+                <tr data-feature-id="{{ feature.id }}" data-feature-start="{{ feature.start }}" data-feature-end="{{ feature.end }}">
+                    <td>{{ feature.id }}</td>
+                    <td>{{ feature.type }}</td>
+                    <td>{{ feature.source }}</td>
+                    <td>{{ feature.start }}</td>
+                    <td>{{ feature.end }}</td>
+                    <td>{{ feature.score }}</td>
+                    <td>{{ feature.strand }}</td>
+                    <td>{{ feature.phase }}</td>
+                    <td>{{ feature.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-3">
+        <!-- Sidebar with features in current view -->
+        <h4>Features in Current View</h4>
+        <table class="table table-striped data-table" id="displayed-features-table">
+            <thead>
+                <tr>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature in displayed_features %}
+                <tr data-feature-id="{{ feature.id }}">
+                    <td>{{ feature.start }}</td>
+                    <td>{{ feature.end }}</td>
+                    <td>{{ feature.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="{% static 'js/genome_viewer.js' %}"></script>
+<script>
+    window.addEventListener('load', function() {
+        const sequence = '{{ sequence_segment|escapejs }}';
+        const startPos = {{ start }};
+        const endPos = {{ end }};
+        const sequenceLength = {{ sequence_length }};
+        const features = JSON.parse('{{ features|escapejs }}');
+        const displayedFeatures = {{ features|safe }};
+        const highlightedFeatureStart = {{ highlighted_feature_start|default:'null' }};
+        const highlightedFeatureEnd = {{ highlighted_feature_end|default:'null' }};
+        const nucleotideData = {{ nucleotide_data }};
+        const interactions = JSON.parse('{{ interactions_json|escapejs }}');
+        const colorBy = '{{ color_by }}';
+
+        initGenomeViewer(
+            sequence,
+            startPos,
+            endPos,
+            sequenceLength,
+            features,
+            highlightedFeatureStart,
+            highlightedFeatureEnd,
+            nucleotideData,
+            colorBy,
+            interactions
+        );
+    });
+</script>
+<style>
+    /* Styles for the sequence viewer */
+    #sequence-viewer {
+        position: relative;
+        overflow-x: auto;
+        font-family: monospace;
+        width: 100%; 
+    }
+
+    .nucleotide-container {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nt-box {
+        width: 12px;
+        height: 12px;
+        text-align: center;
+        line-height: 12px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+        font-size: 10px;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Adjust colors for nucleotides */
+    .nt-box[data-nt="A"] {
+        background-color: #99ccff;
+    }
+
+    .nt-box[data-nt="C"] {
+        background-color: #ff9999;
+    }
+
+    .nt-box[data-nt="G"] {
+        background-color: #99ff99;
+    }
+
+    .nt-box[data-nt="T"] {
+        background-color: #ffff99;
+    }
+
+    /* Highlight features */
+    .feature-nt {
+        border-top: 1px solid grey; 
+        border-bottom: 1px solid grey; 
+    }
+
+    /* Highlight selected feature */
+    .selected-feature {
+        border-top: 2px solid black;
+        border-bottom: 2px solid black; 
+    }
+
+    /* Highlight feature when selected from table */
+    .highlighted-feature {
+        border: 2px solid orange;
+    }
+
+    /* Ensure proper alignment */
+    .nucleotide-container {
+        white-space: nowrap;
+    }
+
+    /* Loading overlay */
+    #loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    #loading-overlay.hidden {
+        display: none;
+    }
+
+    .selected-feature-row {
+        background-color: #ffeeba; /* Highlight selected feature row */
+    }
+
+    /* Adjust genome navigator */
+    #genome-navigator {
+        position: relative;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    #genome-navigator .navigator-line {
+        position: relative;
+        height: 10px;
+        background-color: #e9ecef;
+        margin-bottom: 5px;
+        width: 100%;
+    }
+
+    #genome-navigator .navigator-range {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        background-color: rgba(0, 0, 255, 0.5);
+    }
+</style>
+{% endblock %}
