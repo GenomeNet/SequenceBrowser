@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('viewer.urls')),  # Include the viewer app's URLs
+    path('', include('viewer.urls')),  # Include viewer app URLs
 ]
 
 if settings.DEBUG:

@@ -1,3 +1,4 @@
+python:viewer/templates/viewer/index.html
 {% extends 'viewer/base.html' %}
 {% load static %}
 
@@ -5,24 +6,107 @@
 
 {% block content %}
 <h1 class="text-center">Welcome to the Genome Sequence Viewer!</h1>
-<div class="d-flex justify-content-center mt-4">
-    <form action="{% url 'viewer' contig_name='placeholder' %}" method="get" id="contig-form" class="d-flex">
-        <label for="contig-select" class="me-2 align-self-center">Select a Contig:</label>
-        <select class="form-select me-2" name="contig_name" id="contig-select">
-            {% for sequence in sequences %}
-                <option value="{{ sequence.contig }}">{{ sequence.contig }}</option>
+
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="?show_all={% if show_all %}false{% else %}true{% endif %}&page=1" class="btn btn-primary">
+            {% if show_all %}
+                Show only genomes with CRISPR repeats
+            {% else %}
+                Show all genomes
+            {% endif %}
+        </a>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Genome Name</th>
+                <th>Strain Name</th>
+                <th>Total Length</th>
+                <th>Feature Count</th>
+                <th>Repeat Regions</th>
+                <th>Cas Genes</th>
+                <th>Contigs</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for genome in genomes %}
+                <tr>
+                    <td>{{ genome.name }}</td>
+                    <td>{{ genome.strain_name|default:"N/A" }}</td>
+                    <td>{{ genome.total_length|filesizeformat }}</td>
+                    <td>{{ genome.feature_count }}</td>
+                    <td>
+                        {{ genome.repeat_region_count }}
+                        <ul>
+                            {% for method in genome.repeat_region_methods.all %}
+                                <li>
+                                    {{ method.method }}:
+                                    {% if method.repeats.all %}
+                                        (
+                                        {% for repeat in method.repeats.all %}
+                                            <a href="{% url 'viewer' contig_name=repeat.sequence.contig %}?position={{ repeat.start }}">
+                                                {{ forloop.counter }}
+                                            </a>{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                        )
+                                    {% else %}
+                                        No repeats available
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+
+                    <td>
+                        <ul>
+                            {% for cas_gene in genome.cas_genes.all %}
+                                <li>{{ cas_gene.name }}</li>
+                            {% empty %}
+                                <li>No Cas genes found.</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+
+                    <td>
+                        {% if genome.sequences.all %}
+                            <ul>
+                                {% for sequence in genome.sequences.all %}
+                                    <li>
+                                        <a href="{% url 'viewer' contig_name=sequence.contig %}">{{ sequence.contig }}</a>
+                                        ({{ sequence.length|filesizeformat }})
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            No contigs available
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No genomes available.</td>
+                </tr>
             {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary">View</button>
-    </form>
+        </tbody>
+    </table>
+
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if genomes.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">&laquo; first</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ genomes.previous_page_number }}">previous</a></li>
+            {% endif %}
+
+            <li class="page-item disabled"><a class="page-link" href="#">Page {{ genomes.number }} of {{ genomes.paginator.num_pages }}</a></li>
+
+            {% if genomes.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ genomes.next_page_number }}">next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ genomes.paginator.num_pages }}">last &raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
 
-<script>
-    document.getElementById('contig-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        var contig = document.getElementById('contig-select').value;
-        var url = "{% url 'viewer' contig_name='placeholder' %}".replace('placeholder', encodeURIComponent(contig));
-        window.location.href = url;
-    });
-</script>
 {% endblock %}

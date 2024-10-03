@@ -1,17 +1,38 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat
+from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome
 import json
 from django.db.models import Q
 from django.db.models.functions import Cast
 from django.db.models import FloatField
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 
 def index(request):
-    sequences = Sequence.objects.all()
-    return render(request, 'viewer/index.html', {'sequences': sequences})
+    show_all = request.GET.get('show_all', 'true').lower() == 'true'
+    
+    if show_all:
+        genomes = Genome.objects.all()
+    else:
+        genomes = Genome.objects.filter(has_crispr_repeat=True)
+    
+    genomes = genomes.order_by('name')
+    
+    paginator = Paginator(genomes, 10)  # Show 10 genomes per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'genomes': page_obj,
+        'show_all': show_all,
+    }
+    return render(request, 'viewer/index.html', context)
+
 
 def viewer(request, contig_name):
+    position = request.GET.get('position')
     sequence = get_object_or_404(Sequence, contig=contig_name)
+    
+    # Fetch all features related to this sequence
     features = sequence.features.all()
 
     # Get start and end positions from URL parameters
@@ -155,7 +176,22 @@ def viewer(request, contig_name):
         except Feature.DoesNotExist:
             pass
 
+    # Determine if a position is provided
+    if position:
+        try:
+            position = int(position)
+            # Find features that encompass the position
+            highlighted_feature = features.filter(start__lte=position, end__gte=position).first()
+        except ValueError:
+            highlighted_feature = None
+    else:
+        highlighted_feature = None
+        
     context = {
+        'contig_name': contig_name,
+        'position': position,
+        'highlighted_feature': highlighted_feature,
+        'features': features,
         'sequence': sequence,
         'sequence_segment': sequence_segment,
         'start': start,
