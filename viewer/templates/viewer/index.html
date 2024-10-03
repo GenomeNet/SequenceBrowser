@@ -9,11 +9,11 @@ python:viewer/templates/viewer/index.html
 
 <div class="container mt-4">
     <div class="mb-3">
-        <a href="?show_all={% if show_all %}false{% else %}true{% endif %}&page=1" class="btn btn-primary">
-            {% if show_all %}
-                Show only genomes with CRISPR repeats
-            {% else %}
+        <a href="?show_crispr={% if show_crispr %}false{% else %}true{% endif %}&page=1" class="btn btn-primary">
+            {% if show_crispr %}
                 Show all genomes
+            {% else %}
+                Show only genomes with CRISPR arrays
             {% endif %}
         </a>
     </div>
@@ -46,7 +46,7 @@ python:viewer/templates/viewer/index.html
                                     {% if method.repeats.all %}
                                         (
                                         {% for repeat in method.repeats.all %}
-                                            <a href="{% url 'viewer' contig_name=repeat.sequence.contig %}?position={{ repeat.start }}">
+                                            <a href="{% url 'viewer' contig_name=repeat.sequence.contig %}?start={% if repeat.start > 500 %}{{ repeat.start|add:"-500" }}{% else %}0{% endif %}&end={{ repeat.end|add:"500" }}">
                                                 {{ forloop.counter }}
                                             </a>{% if not forloop.last %}, {% endif %}
                                         {% endfor %}
@@ -71,14 +71,19 @@ python:viewer/templates/viewer/index.html
 
                     <td>
                         {% if genome.sequences.all %}
-                            <ul>
-                                {% for sequence in genome.sequences.all %}
-                                    <li>
-                                        <a href="{% url 'viewer' contig_name=sequence.contig %}">{{ sequence.contig }}</a>
-                                        ({{ sequence.length|filesizeformat }})
-                                    </li>
-                                {% endfor %}
-                            </ul>
+                            <button class="btn btn-sm btn-outline-primary expand-contigs" data-toggle="collapse" data-target="#contigs-{{ genome.id }}">
+                                Expand ({{ genome.sequences.count }})
+                            </button>
+                            <div id="contigs-{{ genome.id }}" class="collapse mt-2">
+                                <ul>
+                                    {% for sequence in genome.sequences.all %}
+                                        <li>
+                                            <a href="{% url 'viewer' contig_name=sequence.contig %}">{{ sequence.contig }}</a>
+                                            ({{ sequence.length|filesizeformat }})
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         {% else %}
                             No contigs available
                         {% endif %}

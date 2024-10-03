@@ -8,12 +8,12 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 
 def index(request):
-    show_all = request.GET.get('show_all', 'true').lower() == 'true'
+    show_crispr = request.GET.get('show_crispr', 'false').lower() == 'true'
     
-    if show_all:
-        genomes = Genome.objects.all()
-    else:
-        genomes = Genome.objects.filter(has_crispr_repeat=True)
+    genomes = Genome.objects.all()
+    
+    if show_crispr:
+        genomes = genomes.filter(repeat_region_count__gt=0)
     
     genomes = genomes.order_by('name')
     
@@ -23,13 +23,15 @@ def index(request):
 
     context = {
         'genomes': page_obj,
-        'show_all': show_all,
+        'show_crispr': show_crispr,
     }
     return render(request, 'viewer/index.html', context)
 
 
 def viewer(request, contig_name):
     position = request.GET.get('position')
+    start = request.GET.get('start')
+    end = request.GET.get('end')
     sequence = get_object_or_404(Sequence, contig=contig_name)
     
     # Fetch all features related to this sequence
