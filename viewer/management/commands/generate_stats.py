@@ -105,6 +105,7 @@ class Command(BaseCommand):
                         method_entry, created = RepeatRegionMethod.objects.get_or_create(genome=genome, method=method)
                         method_entry.count = len(repeat_features)
                         method_entry.save()
+                        method_entry.repeats.clear()  # Clear existing associations
                         method_entry.repeats.add(*repeat_features)
                         self.stdout.write(f"Associated {len(repeat_features)} repeats with method '{method}' for genome {genome.name}")
                     except Exception as e:
@@ -127,6 +128,9 @@ class Command(BaseCommand):
         Constructs the description from the feature's attributes.
         Adjust this method based on how descriptions are built in your application.
         """
+        if feature.attributes is None:
+            return ""
+        
         name = feature.attributes.get('Name', [''])[0] if isinstance(feature.attributes.get('Name'), list) else feature.attributes.get('Name', '')
         gene = feature.attributes.get('gene', [''])[0] if isinstance(feature.attributes.get('gene'), list) else feature.attributes.get('gene', '')
         product = feature.attributes.get('product', [''])[0] if isinstance(feature.attributes.get('product'), list) else feature.attributes.get('product', '')
@@ -137,6 +141,9 @@ class Command(BaseCommand):
         Extracts the Cas gene name from the feature's attributes.
         Adjust this method based on how Cas gene names are stored in your attributes.
         """
+        if feature.attributes is None:
+            return 'Unknown Cas gene'
+
         # Priority: Name > gene > product
         if 'Name' in feature.attributes and feature.attributes['Name']:
             return feature.attributes['Name'][0] if isinstance(feature.attributes['Name'], list) else feature.attributes['Name']
