@@ -1,0 +1,106 @@
+{% extends 'viewer/base.html' %}
+{% load static %}
+{% load get_item %}
+
+{% block title %}Evaluation - CRISPR Predictions{% endblock %}
+
+{% block content %}
+<h1 class="text-center">CRISPR Predictions Evaluation</h1>
+
+<div class="container mt-4">
+    <h4>Total Unique CRISPR Repeats Predicted: {{ total_repeats }}</h4>
+
+    <h4>Counts per Method:</h4>
+    <ul>
+    {% for method in methods %}
+        <li>{{ method }}: {{ counts_per_method|get_item:method }}</li>
+    {% endfor %}
+    </ul>
+
+    {% for overlap_type, overlap_matrix, title in overlap_matrices %}
+        <h4>{{ title }}</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover heatmap-table" id="table-{{ overlap_type }}">
+                <thead class="table-light">
+                    <tr>
+                        <th>Method</th>
+                        {% for method in methods %}
+                            <th>{{ method }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for method1 in methods %}
+                        <tr>
+                            <th>{{ method1 }}</th>
+                            {% for method2 in methods %}
+                                {% if method1 == method2 %}
+                                    <td class="heatmap-cell diagonal-cell">{{ counts_per_method|get_item:method1 }}</td>
+                                {% elif method1 < method2 %}
+                                    {% with pair_key=method1|add:"__"|add:method2 %}
+                                        <td class="heatmap-cell">{{ overlap_matrix|get_item:pair_key }}</td>
+                                    {% endwith %}
+                                {% else %}
+                                    {% with pair_key=method2|add:"__"|add:method1 %}
+                                        <td class="heatmap-cell">{{ overlap_matrix|get_item:pair_key }}</td>
+                                    {% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function applyHeatmap(tableId) {
+            const table = document.getElementById(tableId);
+            const cells = table.querySelectorAll('td.heatmap-cell');
+            const values = Array.from(cells).map(cell => parseInt(cell.textContent));
+            const minValue = Math.min(...values);
+            const maxValue = Math.max(...values);
+
+            const colorScale = d3.scaleSequential()
+                .domain([minValue, maxValue])
+                .interpolator(d3.interpolateYlOrRd);
+
+            cells.forEach(cell => {
+                const value = parseInt(cell.textContent);
+                cell.style.backgroundColor = colorScale(value);
+                
+                // Determine text color based on background brightness
+                const rgb = d3.rgb(colorScale(value));
+                const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+                cell.style.color = brightness > 125 ? 'black' : 'white';
+
+                // Add a special style for diagonal cells
+                if (cell.classList.contains('diagonal-cell')) {
+                    cell.style.fontWeight = 'bold';
+                    cell.style.border = '2px solid #333';
+                }
+            });
+        }
+
+        // Apply heatmap to each table
+        {% for overlap_type, _, _ in overlap_matrices %}
+            applyHeatmap('table-{{ overlap_type }}');
+        {% endfor %}
+
+        // Initialize DataTables
+        var tables = document.querySelectorAll('.heatmap-table');
+        tables.forEach(function(table) {
+            new DataTable(table, {
+                paging: false,
+                searching: false,
+                info: false
+            });
+        });
+    });
+</script>
+{% endblock %}

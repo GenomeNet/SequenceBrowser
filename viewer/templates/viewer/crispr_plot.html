@@ -1,0 +1,65 @@
+{% extends 'viewer/base.html' %}
+{% load static %}
+
+{% block title %}CRISPR Arrays Predicted per Genome{% endblock %}
+
+{% block content %}
+<h1 class="text-center">CRISPR Arrays Predicted per Genome</h1>
+
+<div class="container mt-4">
+    <canvas id="genomeCountsChart" width="800" height="400"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data for the bar chart
+    var genomeCounts = {{ genome_counts|safe }};
+
+    var labels = genomeCounts.map(function(item) { return item.genome_name; });
+    var data = genomeCounts.map(function(item) { return item.total_repeats; });
+
+    var ctx = document.getElementById('genomeCountsChart').getContext('2d');
+    var genomeCountsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'CRISPR Arrays Predicted',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    enabled: true
+                },
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of CRISPR Arrays'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Genomes'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,11 +1,12 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome
+from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome, RepeatRegionMethod
 import json
 from django.db.models import Q
 from django.db.models.functions import Cast
 from django.db.models import FloatField
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from itertools import combinations
 
 def index(request):
     show_crispr = request.GET.get('show_crispr', 'false').lower() == 'true'
@@ -101,6 +102,7 @@ def viewer(request, contig_name):
     for feature in displayed_features:
         features_data.append({
             'id': feature.id,
+            'type': feature.type,  # Added type here
             'start': feature.start,
             'end': feature.end,
             'description': feature.attributes.get('product', '') if feature.attributes else '',
@@ -215,6 +217,81 @@ def viewer(request, contig_name):
         'selected_feature_id': selected_feature_id,
     }
     return render(request, 'viewer/viewer.html', context)
+
+
+def crispr_plot(request):
+    # Prepare per-genome CRISPR array counts
+    genome_counts = []
+    genomes = Genome.objects.all().order_by('name')
+    for genome in genomes:
+        genome_counts.append({
+            'genome_name': genome.name,
+            'total_repeats': genome.repeat_region_count,
+        })
+
+    context = {
+        'genome_counts': genome_counts,
+    }
+
+    return render(request, 'viewer/crispr_plot.html', context)
+
+
+def evaluation(request):
+    methods = list(RepeatRegionMethod.objects.values_list('method', flat=True).distinct().order_by('method'))
+
+    repeats_by_method = {}
+    for method in methods:
+        repeats = Feature.objects.filter(
+            type='repeat_region',
+            repeat_methods__method=method
+        ).values('sequence__contig', 'start', 'end')
+        repeats_set = set((r['sequence__contig'], r['start'], r['end']) for r in repeats)
+        repeats_by_method[method] = repeats_set
+
+    counts_per_method = {method: len(repeats_by_method[method]) for method in methods}
+    total_repeats = len(set.union(*repeats_by_method.values())) if repeats_by_method else 0
+
+    def compute_overlap_matrix(min_overlap, percentage_overlap=None):
+        overlap_matrix = {}
+        for method1, method2 in combinations(methods, 2):
+            overlaps = 0
+            for repeat1 in repeats_by_method[method1]:
+                for repeat2 in repeats_by_method[method2]:
+                    if repeat1[0] != repeat2[0]:
+                        continue  # Different contigs
+                    overlap_start = max(repeat1[1], repeat2[1])
+                    overlap_end = min(repeat1[2], repeat2[2])
+                    overlap_length = overlap_end - overlap_start
+                    if percentage_overlap:
+                        repeat1_length = repeat1[2] - repeat1[1]
+                        repeat2_length = repeat2[2] - repeat2[1]
+                        if (overlap_length / repeat1_length >= percentage_overlap and 
+                            overlap_length / repeat2_length >= percentage_overlap):
+                            overlaps += 1
+                    elif overlap_length >= min_overlap:
+                        overlaps += 1
+            key = f"{method1}__{method2}"
+            overlap_matrix[key] = overlaps
+        return overlap_matrix
+
+    overlap_matrix_100nt = compute_overlap_matrix(100)
+    overlap_matrix_1nt = compute_overlap_matrix(1)
+    overlap_matrix_80percent = compute_overlap_matrix(1, 0.8)
+
+    overlap_matrices = [
+        ('100nt', overlap_matrix_100nt, 'Overlap of Predictions between Methods (≥100 nt):'),
+        ('1nt', overlap_matrix_1nt, 'Overlap of Predictions between Methods (≥1 nt):'),
+        ('80percent', overlap_matrix_80percent, 'Overlap of Predictions between Methods (≥80% of sequence length):'),
+    ]
+
+    context = {
+        'methods': methods,
+        'counts_per_method': counts_per_method,
+        'total_repeats': total_repeats,
+        'overlap_matrices': overlap_matrices,
+    }
+
+    return render(request, 'viewer/evaluation.html', context)
 
 # View to handle AJAX requests for heatmap data
 def get_heatmap_data(request, contig_name):
