@@ -14,5 +14,6 @@ urlpatterns = [
     path('cas_heatmap/', views.cas_heatmap, name='cas_heatmap'),
     path('dataprotection/', views.dataprotection, name='dataprotection'),
     path('imprint/', views.imprint, name='imprint'),
+    path('cas_interactions/', views.cas_interactions, name='cas_interactions'),
 
 ]

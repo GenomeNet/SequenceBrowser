@@ -13,7 +13,20 @@ class Genome(models.Model):
 
     def __str__(self):
         return self.name
+    
+class GeneInfluence(models.Model):
+    gene_name = models.CharField(max_length=255)
+    coefficient = models.FloatField()
+    p_value = models.FloatField(null=True, blank=True)  # Allow null values
+    is_cas_gene = models.BooleanField(default=False)
+    full_equation = models.TextField(null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.gene_name}: coefficient={self.coefficient}, p-value={self.p_value}"
+    
+    class Meta:
+        unique_together = ('gene_name',)
+        
 class Sequence(models.Model):
     genome = models.ForeignKey(Genome, on_delete=models.CASCADE, related_name='sequences')
     contig = models.CharField(max_length=200)

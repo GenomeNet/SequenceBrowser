@@ -1,0 +1,97 @@
+{% extends 'viewer/base.html' %}
+
+{% block title %}Gene Influence on CRISPR Arrays - Genome Sequence Viewer{% endblock %}
+
+{% block content %}
+<h1>Gene Influence on CRISPR Arrays</h1>
+
+<div class="table-description">
+    <p>This table shows the top {{ top_n }} genes influencing the number of CRISPR arrays identified across genomes. The coefficients are derived from a Ridge Regression model predicting the number of CRISPR arrays based on the presence of genes. Positive coefficients indicate a positive influence, while negative coefficients indicate a negative influence.</p>
+</div>
+
+<h2>Top {{ top_n }} Genes Influencing CRISPR Array Count</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Gene Name</th>
+            <th>Coefficient</th>
+            <th>Influence Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for influence in top_influencers %}
+            <tr {% if influence.is_cas_gene %}class="cas-gene-row"{% endif %}>
+                <td>{{ influence.gene_name }}</td>
+                <td>{{ influence.coefficient|floatformat:4 }}</td>
+                <td>
+                    {% if influence.coefficient > 0 %}
+                        <span class="badge bg-success">Positive</span>
+                    {% elif influence.coefficient < 0 %}
+                        <span class="badge bg-danger">Negative</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Neutral</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3">No influential genes available.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Button to toggle Regression Equation -->
+<button id="toggle-equation-btn" class="btn btn-info mb-3">Show Regression Equation</button>
+
+<!-- Regression Equation Section (Initially Hidden) -->
+<div id="regression-equation" style="display: none;">
+    <h3>Regression Equation:</h3>
+    <p>{{ full_equation }}</p>
+</div>
+
+<style>
+    /* Highlight Cas genes */
+    .cas-gene-row {
+        background-color: #ffdddd;
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.5em;
+        border-radius: 0.25rem;
+        color: #fff;
+    }
+
+    .bg-success {
+        background-color: #28a745;
+    }
+
+    .bg-danger {
+        background-color: #dc3545;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d;
+    }
+</style>
+
+<!-- JavaScript for Toggle Functionality -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('toggle-equation-btn');
+        const equationDiv = document.getElementById('regression-equation');
+
+        toggleBtn.addEventListener('click', function() {
+            if (equationDiv.style.display === 'none') {
+                equationDiv.style.display = 'block';
+                toggleBtn.textContent = 'Hide Regression Equation';
+            } else {
+                equationDiv.style.display = 'none';
+                toggleBtn.textContent = 'Show Regression Equation';
+            }
+        });
+    });
+</script>
+
+{% endblock %}

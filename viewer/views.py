@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome, RepeatRegionMethod, CasGene
+from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome, RepeatRegionMethod, CasGene, GeneInfluence
 import json
 from django.db.models import Q, Avg, StdDev, F, Sum, Count
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Abs
 from django.db.models import FloatField
 from django.http import JsonResponse
 from django.core.paginator import Paginator
@@ -42,6 +42,30 @@ def index(request):
     }
     return render(request, 'viewer/index.html', context)
 
+
+def cas_interactions(request):
+    TOP_N = 10  # Number of top genes to display
+
+    # Retrieve the full equation entry
+    equation_entry = GeneInfluence.objects.filter(gene_name='__equation__').first()
+    full_equation = equation_entry.full_equation if equation_entry else None
+
+    # Retrieve influence data excluding the equation entry
+    influences = GeneInfluence.objects.exclude(gene_name='__equation__')
+
+    # Get all influencers and sort them by the absolute value of their coefficients
+    all_influencers = list(influences)
+    all_influencers.sort(key=lambda x: abs(x.coefficient), reverse=True)
+
+    # Get top N influencers
+    top_influencers = all_influencers[:TOP_N]
+
+    context = {
+        'top_influencers': top_influencers,
+        'full_equation': full_equation,
+        'top_n': TOP_N,
+    }
+    return render(request, 'viewer/cas_interactions.html', context)
 
 def cas_heatmap(request):
     # Get all unique Cas genes
