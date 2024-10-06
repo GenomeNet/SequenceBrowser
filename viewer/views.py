@@ -1,12 +1,17 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome, RepeatRegionMethod
+from .models import Sequence, Feature, NucleotideData, Interaction, FeatureSummaryStat, Genome, RepeatRegionMethod, CasGene
 import json
-from django.db.models import Q
+from django.db.models import Q, Avg, StdDev, F, Sum, Count
 from django.db.models.functions import Cast
 from django.db.models import FloatField
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from itertools import combinations
+import plotly.graph_objs as go
+import plotly.figure_factory as ff
+import numpy as np
+from scipy.cluster import hierarchy
+
 
 def index(request):
     show_crispr = request.GET.get('show_crispr', 'false').lower() == 'true'
@@ -22,11 +27,85 @@ def index(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Dashboard data
+    total_genomes = Genome.objects.count()
+    # Count distinct methods across all genomes
+    total_crispr_methods = RepeatRegionMethod.objects.values('method').distinct().count()
+    total_crispr_arrays = Feature.objects.filter(type='repeat_region').count()
+
     context = {
         'genomes': page_obj,
         'show_crispr': show_crispr,
+        'total_genomes': total_genomes,
+        'total_crispr_methods': total_crispr_methods,
+        'total_crispr_arrays': total_crispr_arrays,
     }
     return render(request, 'viewer/index.html', context)
+
+
+def cas_heatmap(request):
+    # Get all unique Cas genes
+    cas_genes = list(CasGene.objects.values_list('name', flat=True).distinct())
+    
+    # Get all genomes
+    genomes = list(Genome.objects.all().order_by('name'))
+    
+    # Create a matrix of Cas gene presence
+    heatmap_data = []
+    for genome in genomes:
+        genome_cas_genes = genome.cas_genes.values_list('name', flat=True)
+        row = [1 if gene in genome_cas_genes else 0 for gene in cas_genes]
+        heatmap_data.append(row)
+    
+    # Convert to numpy array
+    heatmap_data = np.array(heatmap_data)
+    
+    # Perform clustering
+    row_linkage = hierarchy.linkage(heatmap_data, method='ward')
+    col_linkage = hierarchy.linkage(heatmap_data.T, method='ward')
+
+    # Reorder the data based on clustering
+    row_order = hierarchy.dendrogram(row_linkage, no_plot=True)['leaves']
+    col_order = hierarchy.dendrogram(col_linkage, no_plot=True)['leaves']
+
+    heatmap_data = heatmap_data[row_order, :][:, col_order]
+    
+    # Create heatmap
+    heatmap = go.Heatmap(
+        z=heatmap_data,
+        x=[cas_genes[i] for i in col_order],
+        y=[genomes[i].name for i in row_order],
+        colorscale=[[0, 'white'], [1, 'red']],
+    )
+    
+    layout = go.Layout(
+        title='Cas Gene Heatmap',
+        xaxis=dict(
+            title='Cas Genes',
+            tickangle=90,
+            side='bottom',
+            tickfont=dict(size=10),
+        ),
+        yaxis=dict(
+            title='Genomes',
+            tickfont=dict(size=10),
+            automargin=True,
+        ),
+        height=800,
+        width=1200,
+        margin=dict(l=200, r=50, b=200, t=50),
+    )
+    
+    fig = go.Figure(data=[heatmap], layout=layout)
+    
+    # Convert the figure to JSON
+    plot_json = fig.to_json()
+    
+    context = {
+        'plot_json': plot_json,
+    }
+    
+    return render(request, 'viewer/cas_heatmap.html', context)
 
 
 def viewer(request, contig_name):
@@ -218,39 +297,143 @@ def viewer(request, contig_name):
     }
     return render(request, 'viewer/viewer.html', context)
 
-
 def crispr_plot(request):
-    # Prepare per-genome CRISPR array counts
-    genome_counts = []
     genomes = Genome.objects.all().order_by('name')
-    for genome in genomes:
-        genome_counts.append({
-            'genome_name': genome.name,
-            'total_repeats': genome.repeat_region_count,
-        })
+    methods = RepeatRegionMethod.objects.values_list('method', flat=True).distinct()
+    
+    scatter_data = []
+    for method1, method2 in combinations(methods, 2):
+        for genome in genomes:
+            count1 = Feature.objects.filter(
+                type='repeat_region',
+                repeat_methods__method=method1,
+                sequence__genome=genome
+            ).count()
+            count2 = Feature.objects.filter(
+                type='repeat_region',
+                repeat_methods__method=method2,
+                sequence__genome=genome
+            ).count()
+            scatter_data.append({
+                'genome_name': genome.name,
+                'method1': method1,
+                'method2': method2,
+                'count1': count1,
+                'count2': count2,
+            })
 
     context = {
-        'genome_counts': genome_counts,
+        'scatter_data': json.dumps(scatter_data),
+        'methods': list(methods),
     }
 
     return render(request, 'viewer/crispr_plot.html', context)
-
 
 def evaluation(request):
     methods = list(RepeatRegionMethod.objects.values_list('method', flat=True).distinct().order_by('method'))
 
     repeats_by_method = {}
+    counts_per_method = {}
+    avg_length_per_method = {}
+    std_dev_per_method = {}
+    crispr_fraction_per_method = {}
+    genome_lengths = {}
+    total_genome_length = 0
+
+    for genome in Genome.objects.all():
+        total_length = genome.sequences.aggregate(Sum('length'))['length__sum'] or 0
+        genome_lengths[genome.name] = total_length
+        total_genome_length += total_length
+
     for method in methods:
         repeats = Feature.objects.filter(
             type='repeat_region',
             repeat_methods__method=method
-        ).values('sequence__contig', 'start', 'end')
-        repeats_set = set((r['sequence__contig'], r['start'], r['end']) for r in repeats)
-        repeats_by_method[method] = repeats_set
+        ).annotate(length=F('end') - F('start'))
 
-    counts_per_method = {method: len(repeats_by_method[method]) for method in methods}
+        repeats_set = set((r.sequence.contig, r.start, r.end) for r in repeats)
+        repeats_by_method[method] = repeats_set
+        counts_per_method[method] = len(repeats_set)
+
+        # Calculate average length and standard deviation
+        avg_length = repeats.aggregate(avg=Avg('length'))['avg']
+        std_dev = repeats.aggregate(std=StdDev('length'))['std']
+
+        avg_length_per_method[method] = round(avg_length, 2) if avg_length else 0
+        std_dev_per_method[method] = round(std_dev, 2) if std_dev else 0
+
+        # Calculate fraction of genome that is CRISPR
+        total_crispr_length = repeats.aggregate(Sum('length'))['length__sum'] or 0
+        crispr_fraction = (total_crispr_length / total_genome_length) if total_genome_length > 0 else 0
+        crispr_fraction_per_method[method] = crispr_fraction
+
     total_repeats = len(set.union(*repeats_by_method.values())) if repeats_by_method else 0
 
+
+    def compute_overlap_matrix(min_overlap, percentage_overlap=None):
+        overlap_matrix = {}
+        for method1, method2 in combinations(methods, 2):
+            overlaps = 0
+            for repeat1 in repeats_by_method[method1]:
+                for repeat2 in repeats_by_method[method2]:
+                    if repeat1[0] != repeat2[0]:
+                        continue  # Different contigs
+                    overlap_start = max(repeat1[1], repeat2[1])
+                    overlap_end = min(repeat1[2], repeat2[2])
+                    overlap_length = overlap_end - overlap_start
+                    if percentage_overlap:
+                        repeat1_length = repeat1[2] - repeat1[1]
+                        repeat2_length = repeat2[2] - repeat2[1]
+                        if (overlap_length / repeat1_length >= percentage_overlap and 
+                            overlap_length / repeat2_length >= percentage_overlap):
+                            overlaps += 1
+                    elif overlap_length >= min_overlap:
+                        overlaps += 1
+            key = f"{method1}__{method2}"
+            overlap_matrix[key] = overlaps
+        return overlap_matrix
+
+    overlap_matrix_100nt = compute_overlap_matrix(100)
+    overlap_matrix_1nt = compute_overlap_matrix(1)
+    overlap_matrix_80percent = compute_overlap_matrix(1, 0.8)
+
+    genome_lengths = {}
+    for genome in Genome.objects.all():
+        total_length = genome.sequences.aggregate(Sum('length'))['length__sum'] or 0
+        genome_lengths[genome.name] = total_length
+
+    crisprs_per_1000nt = {}
+    for method in methods:
+        total_crisprs = 0
+        for genome_name, genome_length in genome_lengths.items():
+            crisprs_count = Feature.objects.filter(
+                type='repeat_region',
+                repeat_methods__method=method,
+                sequence__genome__name=genome_name
+            ).count()
+            total_crisprs += crisprs_count
+        
+        crisprs_per_1000nt[method] = (total_crisprs / total_genome_length) * 1000 if total_genome_length > 0 else 0
+
+
+    overlap_matrices = [
+        ('100nt', overlap_matrix_100nt, 'Overlap of Predictions between Methods (≥100 nt):'),
+        ('1nt', overlap_matrix_1nt, 'Overlap of Predictions between Methods (≥1 nt):'),
+        ('80percent', overlap_matrix_80percent, 'Overlap of Predictions between Methods (≥80% of sequence length):'),
+    ]
+
+    context = {
+        'methods': methods,
+        'counts_per_method': counts_per_method,
+        'avg_length_per_method': avg_length_per_method,
+        'std_dev_per_method': std_dev_per_method,
+        'total_repeats': total_repeats,
+        'overlap_matrices': overlap_matrices,
+        'crisprs_per_1000nt': crisprs_per_1000nt,
+        'crispr_fraction_per_method': crispr_fraction_per_method,
+    }
+
+    return render(request, 'viewer/evaluation.html', context)
     def compute_overlap_matrix(min_overlap, percentage_overlap=None):
         overlap_matrix = {}
         for method1, method2 in combinations(methods, 2):
@@ -287,8 +470,11 @@ def evaluation(request):
     context = {
         'methods': methods,
         'counts_per_method': counts_per_method,
+        'avg_length_per_method': avg_length_per_method,
+        'std_dev_per_method': std_dev_per_method,
         'total_repeats': total_repeats,
         'overlap_matrices': overlap_matrices,
+        'crisprs_per_1000nt': crisprs_per_1000nt,  # Add this line
     }
 
     return render(request, 'viewer/evaluation.html', context)
@@ -424,3 +610,12 @@ def feature_info(request, contig_name):
     }
     
     return JsonResponse({'feature': feature_data})
+
+def about(request):
+    return render(request, 'viewer/about.html')
+
+def imprint(request):
+   return render(request, 'viewer/imprint.html')
+    
+def dataprotection(request):
+   return render(request, 'viewer/dataprotection.html')

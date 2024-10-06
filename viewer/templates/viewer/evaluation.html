@@ -5,54 +5,79 @@
 {% block title %}Evaluation - CRISPR Predictions{% endblock %}
 
 {% block content %}
-<h1 class="text-center">CRISPR Predictions Evaluation</h1>
+<h1>CRISPR Predictions Evaluation</h1>
 
-<div class="container mt-4">
-    <h4>Total Unique CRISPR Repeats Predicted: {{ total_repeats }}</h4>
 
-    <h4>Counts per Method:</h4>
-    <ul>
+<h4>Total Unique CRISPR Repeats Predicted: {{ total_repeats }}</h4>
+
+<h4>Counts per Method:</h4>
+<ul>
+{% for method in methods %}
+    <li>{{ method }}: {{ counts_per_method|get_item:method }}</li>
+{% endfor %}
+</ul>
+
+<h4>Counts and Statistics per Method:</h4>
+<table class="results-table">
+    <thead>
+        <tr>
+            <th>Method</th>
+            <th>Count</th>
+            <th>Average Length (SD)</th>
+            <th>CRISPRs per 1000 nt</th>
+            <th>Fraction of Genome</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for method in methods %}
-        <li>{{ method }}: {{ counts_per_method|get_item:method }}</li>
+        <tr>
+            <td>{{ method }}</td>
+            <td>{{ counts_per_method|get_item:method }}</td>
+            <td>{{ avg_length_per_method|get_item:method }} ({{ std_dev_per_method|get_item:method }})</td>
+            <td>{{ crisprs_per_1000nt|get_item:method|floatformat:4 }}</td>
+            <td>{{ crispr_fraction_per_method|get_item:method|floatformat:4 }}</td>
+        </tr>
     {% endfor %}
-    </ul>
+    </tbody>
+</table>
 
-    {% for overlap_type, overlap_matrix, title in overlap_matrices %}
-        <h4>{{ title }}</h4>
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover heatmap-table" id="table-{{ overlap_type }}">
-                <thead class="table-light">
+
+{% for overlap_type, overlap_matrix, title in overlap_matrices %}
+    <h4>{{ title }}</h4>
+    <div class="results-table">
+        <table class="table table-bordered table-hover heatmap-table" id="table-{{ overlap_type }}">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Method</th>
+                    {% for method in methods %}
+                        <th class="text-center">{{ method }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for method1 in methods %}
                     <tr>
-                        <th>Method</th>
-                        {% for method in methods %}
-                            <th>{{ method }}</th>
+                        <th class="text-start">{{ method1 }}</th>
+                        {% for method2 in methods %}
+                            {% if method1 == method2 %}
+                                <td class="heatmap-cell diagonal-cell text-center">{{ counts_per_method|get_item:method1 }}</td>
+                            {% elif method1 < method2 %}
+                                {% with pair_key=method1|add:"__"|add:method2 %}
+                                    <td class="heatmap-cell text-center">{{ overlap_matrix|get_item:pair_key }}</td>
+                                {% endwith %}
+                            {% else %}
+                                {% with pair_key=method2|add:"__"|add:method1 %}
+                                    <td class="heatmap-cell text-center">{{ overlap_matrix|get_item:pair_key }}</td>
+                                {% endwith %}
+                            {% endif %}
                         {% endfor %}
                     </tr>
-                </thead>
-                <tbody>
-                    {% for method1 in methods %}
-                        <tr>
-                            <th>{{ method1 }}</th>
-                            {% for method2 in methods %}
-                                {% if method1 == method2 %}
-                                    <td class="heatmap-cell diagonal-cell">{{ counts_per_method|get_item:method1 }}</td>
-                                {% elif method1 < method2 %}
-                                    {% with pair_key=method1|add:"__"|add:method2 %}
-                                        <td class="heatmap-cell">{{ overlap_matrix|get_item:pair_key }}</td>
-                                    {% endwith %}
-                                {% else %}
-                                    {% with pair_key=method2|add:"__"|add:method1 %}
-                                        <td class="heatmap-cell">{{ overlap_matrix|get_item:pair_key }}</td>
-                                    {% endwith %}
-                                {% endif %}
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endfor %}
-</div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endfor %}
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -92,15 +117,7 @@
             applyHeatmap('table-{{ overlap_type }}');
         {% endfor %}
 
-        // Initialize DataTables
-        var tables = document.querySelectorAll('.heatmap-table');
-        tables.forEach(function(table) {
-            new DataTable(table, {
-                paging: false,
-                searching: false,
-                info: false
-            });
-        });
+        // Remove DataTables initialization
     });
 </script>
 {% endblock %}

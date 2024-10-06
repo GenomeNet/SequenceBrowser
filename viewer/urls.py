@@ -10,4 +10,9 @@ urlpatterns = [
     path('viewer/<str:contig_name>/feature_info/', views.feature_info, name='feature_info'),
     path('crispr_plot/', views.crispr_plot, name='crispr_plot'),
     path('evaluation/', views.evaluation, name='evaluation'),
+    path('about/', views.about, name='about'),
+    path('cas_heatmap/', views.cas_heatmap, name='cas_heatmap'),
+    path('dataprotection/', views.dataprotection, name='dataprotection'),
+    path('imprint/', views.imprint, name='imprint'),
+
 ]

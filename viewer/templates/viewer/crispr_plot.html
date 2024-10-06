@@ -1,65 +1,126 @@
 {% extends 'viewer/base.html' %}
 {% load static %}
 
-{% block title %}CRISPR Arrays Predicted per Genome{% endblock %}
+{% block title %}CRISPR Arrays Comparison Plot{% endblock %}
 
 {% block content %}
-<h1 class="text-center">CRISPR Arrays Predicted per Genome</h1>
+<h1>Method comparison</h1>
 
-<div class="container mt-4">
-    <canvas id="genomeCountsChart" width="800" height="400"></canvas>
+<div class="row">
+    <div class="col-md-3">
+        <div class="form-group">
+            <label for="method1Select">Method 1:</label>
+            <select id="method1Select" class="form-control">
+                {% for method in methods %}
+                    <option value="{{ method }}">{{ method }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label for="method2Select">Method 2:</label>
+            <select id="method2Select" class="form-control">
+                {% for method in methods %}
+                    <option value="{{ method }}">{{ method }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
 </div>
+<div class="row mt-4">
+    <div class="col-md-12">
+        <canvas id="scatterPlot" width="800" height="400"></canvas>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Data for the bar chart
-    var genomeCounts = {{ genome_counts|safe }};
+    var scatterData = {{ scatter_data|safe }};
+    var methods = {{ methods|safe }};
+    var chart;
 
-    var labels = genomeCounts.map(function(item) { return item.genome_name; });
-    var data = genomeCounts.map(function(item) { return item.total_repeats; });
+    function updateChart() {
+        var method1 = document.getElementById('method1Select').value;
+        var method2 = document.getElementById('method2Select').value;
 
-    var ctx = document.getElementById('genomeCountsChart').getContext('2d');
-    var genomeCountsChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'CRISPR Arrays Predicted',
-                data: data,
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                tooltip: {
-                    enabled: true
-                },
-                legend: {
-                    display: true
-                }
+        var filteredData = scatterData.filter(function(item) {
+            return (item.method1 === method1 && item.method2 === method2) ||
+                   (item.method1 === method2 && item.method2 === method1);
+        });
+
+        var data = filteredData.map(function(item) {
+            return {
+                x: item.method1 === method1 ? item.count1 : item.count2,
+                y: item.method1 === method1 ? item.count2 : item.count1,
+                genome: item.genome_name
+            };
+        });
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        var ctx = document.getElementById('scatterPlot').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Genomes',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
             },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of CRISPR Arrays'
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.raw.genome || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += '(' + context.parsed.x + ', ' + context.parsed.y + ')';
+                                return label;
+                            }
+                        }
+                    },
+                    legend: {
+                        display: false
                     }
                 },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Genomes'
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: method1 + ' CRISPR Array Count'
+                        },
+                        beginAtZero: true
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: method2 + ' CRISPR Array Count'
+                        },
+                        beginAtZero: true
                     }
                 }
             }
-        }
-    });
+        });
+    }
+
+    document.getElementById('method1Select').addEventListener('change', updateChart);
+    document.getElementById('method2Select').addEventListener('change', updateChart);
+
+    // Initial chart update
+    updateChart();
 </script>
 {% endblock %}

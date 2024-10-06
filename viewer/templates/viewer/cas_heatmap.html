@@ -1,0 +1,23 @@
+{% extends 'viewer/base.html' %}
+{% load static %}
+
+{% block title %}Cas Gene Heatmap - Genome Sequence Viewer{% endblock %}
+
+{% block content %}
+<h1>Presence of Cas genes</h1>
+
+<div class="table-description">
+    <p>The Figure shows predicted Cas genes among the genomes.</p>
+</div>
+<div class="container-fluid mt-4">
+    <div id="cas-heatmap" style="width: 100%; height: 800px;"></div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var plotJson = {{ plot_json|safe }};
+    Plotly.newPlot('cas-heatmap', plotJson.data, plotJson.layout);
+});
+</script>
+{% endblock %}

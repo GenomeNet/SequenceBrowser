@@ -1,93 +1,1073 @@
-/* General styling */
+/* styles.css */
+
 body {
-    font-family: Arial, sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+}
+
+a {
+    color: #0745AD;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+h1 {
+    font-size: 2em;
+    margin: 0.67em 0;
+}
+
+h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid #aaa;
+    padding-bottom: 5px;
+    margin-top: 1em;
+}
+
+h3 {
+    font-size: 1.17em;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.infobox {
+    width: 300px;
+    margin-left: 20px;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border: 1px solid #a2a9b1;
+    font-size: 0.9em;
+    flex-shrink: 0;
+    align-self: flex-start;
+    word-wrap: break-word;
+}
+
+.infobox h2 {
+    font-size: 1em;
+    margin-top: 10px;
+}
+
+.infobox p {
+    margin: 5px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: auto;
+    max-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+tr:nth-child(even) {
+    background-color: #fbfbfb;
+}
+
+.ground-truth-column {
+    border-right: 3px solid #888;
+    font-weight: bold;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: default;
+    color: #0645ad;
+    text-decoration: none;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 220px;
+    background-color: #555;
+    color: #fff;
+    text-align: left;
+    border-radius: 5px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position above */
+    left: 50%;
+    margin-left: -110px; /* Half of the width */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Navigation bar styles */
+.navbar {
+    background-color: #f8f9fa;
+    padding: 0.5rem 0; /* Adjusted padding for better alignment */
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+}
+
+.navbar .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-right: 2rem;
+}
+
+.navbar .nav-links {
+    display: flex;
+    list-style: none;
     margin: 0;
     padding: 0;
 }
 
-h1 {
-    text-align: center;
-    margin-top: 20px;
+.navbar .nav-links li {
+    margin-right: 1rem;
 }
 
-#controls {
-    margin-top: 20px;
-    margin-bottom: 20px;
+.navbar .nav-links li a {
+    color: #333;
+    padding: 0.5rem;
 }
 
-#container {
+.navbar .nav-links li a:hover {
+    color: #0745AD;
+}
+
+/* Additional styles */
+.table-description {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+/* Chart styles */
+.chart-container {
+    width: 100%;
+    height: 600px;
+    margin-bottom: 30px;
+}
+
+/* Highlighted row */
+.highlighted {
+    background-color: #fffacd !important;
+}
+
+/* Adjust table and chart widths */
+.table-container {
+    flex: 2;
+}
+
+.chart-container {
+    flex: 1;
+}
+
+mark {
+    background-color: #fbf4d8; /* Light yellow background */
+    padding: 0.2em;
+    border-radius: 3px;
+    color: #000000; /* Darker text for contrast */
+}
+
+/* Adjusted Styles for Description Header */
+.description-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: -0em; /* Reduced spacing below the header */
+}
+
+.description-header h2,
+.description-header h3 {
+    margin: 0;
+    padding: 0;
+}
+
+.description-header .model-name {
+    font-size: 0.9em;
+    color: #555;
+    /* Additional styling if needed */
+}
+
+/* New Styles for Header Dividers */
+.header-divider {
+    border: none;
+    border-bottom: 1px solid #000000;
+    margin: 0.1em 0 -0.8em 0;
+}
+
+/* Optional: Adjust margins for consistent spacing */
+.section.full-width-section h2,
+.section.full-width-section h3 {
+    margin-top: 1em;
+    margin-bottom: 0.2em;
+}
+
+.model-name {
+    font-size: 0.8em;
+    color: #6a6a6a;
+}
+
+/* Report Error Button */
+.report-error-button {
+    background-color: #ebc959; /* Darker shade to complement the warning banner */
+    color: #856405; /* White text for better contrast */
+    border: none;
+    padding: 8px 16px; /* Increased padding for a more prominent button */
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em; /* Slightly larger font for better readability */
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    margin: 0; /* Remove any default margin */
+}
+
+.report-error-button:hover {
+    background-color: #a17c04; /* Slightly lighter on hover */
+    transform: scale(1.05); /* Subtle scale-up effect */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add a shadow on hover for depth */
+}
+
+/* Full-Width Banner */
+.full-width-banner {
+    width: 100%;
+    background-color: transparent; /* Ensure it's transparent or as desired */
+    padding: 0; /* Remove padding to eliminate gaps */
+    margin: 0; /* Remove margin to eliminate gaps */
+}
+
+/* Warning Message Banner */
+.warning-message-banner {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 15px 30px; /* Increased horizontal padding from 15px to 30px */
+    margin: 0; /* Remove any default margin */
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space between text and button */
+    box-sizing: border-box;
+    width: 100%; /* Span the full width of the container */
+}
+
+.warning-message-banner svg {
+    margin-right: 10px;
+    flex-shrink: 0; /* Prevent SVG from shrinking */
+}
+
+.warning-message-banner > div {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+}
+
+/* Existing Styles (Dashboard, Tables, etc.) */
+.dashboard {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-around;
+    margin: 20px 0;
 }
 
-#feature-table {
-    overflow-y: auto;
-    height: 600px;
-    padding: 10px;
-    width: 25%;
+.dashboard-box {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 10px;
+    flex: 1 1 200px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-#genome-viewer {
-    overflow: hidden;
-    width: 75%;
+.dashboard-box h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    color: #555;
 }
 
-.table {
-    font-size: 14px;
+.dashboard-box p {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin: 0;
+    color: #333;
+}
+
+.search-container {
+    margin: 40px auto;
+    max-width: 800px;
+    width: 90%;
+}
+
+.search-container form {
+    display: flex;
+    flex-direction: column;
     width: 100%;
+}
+
+.search-input-wrapper {
+    flex-grow: 1;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.search-input {
+    width: 100%;
+    height: 50px;
+    font-size: 1.2em;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.search-button {    
+    height: 50px;
+    padding: 0 30px;
+    font-size: 1.2em;
+    background-color: #0745AD;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    align-self: flex-start;
+}
+
+.search-button:hover {
+    background-color: #3367D6;
+}
+
+.results-table {
+    width: 100%;
+    margin-top: 20px;
     border-collapse: collapse;
+    font-size: 0.9em;
 }
 
-.table th, .table td {
-    padding: 8px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
+.results-table th, .results-table td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    vertical-align: top;
 }
 
-.table th {
+.results-table th {
     background-color: #f2f2f2;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.results-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.results-table .text-start {
+    text-align: left;
+}
+
+.results-table .text-end {
+    text-align: right;
+}
+
+.genome-name {
     font-weight: bold;
 }
 
-.table tr:hover {
-    background-color: #f5f5f5;
+.compact-list {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
 }
 
-.table td {
+.compact-list li {
+    margin-bottom: 2px;
+}
+
+.truncate {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 150px;
 }
 
-.nucleotide {
-    font-family: monospace;
+.expand-contigs {
+    font-size: 0.8em;
+    padding: 2px 5px;
 }
 
-.feature {
+/* Responsive table */
+@media screen and (max-width: 768px) {
+    .results-table {
+        font-size: 0.8em;
+    }
+
+    .results-table th, .results-table td {
+        padding: 4px;
+    }
+
+    .truncate {
+        max-width: 100px;
+    }
+}
+
+/* Styles for Tabs */
+.tab {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.tab button {
+    background-color: inherit;
+    border: none;
+    outline: none;
     cursor: pointer;
+    padding: 10px 20px;
+    transition: background-color 0.3s;
+    font-size: 1em;
 }
 
-.feature:hover {
-    stroke: #000;
-    stroke-width: 1;
+.tab button:hover {
+    background-color: #ddd;
 }
 
-.feature-label {
-    font-size: 10px;
+.tab button.active {
+    background-color: #ccc;
+}
+
+.tabcontent {
+    display: none;
+}
+
+.tabcontent.active {
+    display: block;
+}
+
+/* Microbe of the Day Styles */
+.microbe-of-the-day {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 30px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.microbe-of-the-day h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.microbe-card {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.microbe-card h3 a {
+    color: #007BFF;
+    text-decoration: none;
+}
+
+.microbe-card h3 a:hover {
+    text-decoration: underline;
+}
+
+.microbe-card ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.microbe-card ul li {
+    padding: 5px 0;
+}
+
+.view-details-button {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #0745AD;
+    color: #ffffff;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+
+
+
+.view-details-button:hover {
+    background-color: #218838;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .navbar .nav-links {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .navbar .nav-links li {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .microbe-card {
+        padding: 10px;
+    }
+
+    .microbe-card h3 {
+        font-size: 1.2em;
+    }
+
+    .microbe-card ul li {
+        font-size: 0.9em;
+    }
+
+    .view-details-button {
+        padding: 8px 16px;
+    }
+
+    .warning-message-banner {
+        padding: 15px 20px; /* Adjusted padding for smaller screens */
+    }
+
+}
+
+/* Ensure there's no margin between navbar and banner */
+.navbar + .full-width-banner {
+    margin-top: 0; /* Removes any top margin between navbar and banner */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .navbar .nav-links {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .navbar .nav-links li {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .microbe-card {
+        padding: 10px;
+    }
+
+    .microbe-card h3 {
+        font-size: 1.2em;
+    }
+
+    .microbe-card ul li {
+        font-size: 0.9em;
+    }
+
+    .view-details-button {
+        padding: 8px 16px;
+    }
+
+    .warning-message-banner {
+        padding: 15px 20px; /* Adjusted padding for smaller screens */
+    }
+}
+
+/* Ensure there's no margin between navbar and banner */
+.navbar + .full-width-banner {
+    margin-top: 0; /* Removes any top margin between navbar and banner */
+}
+
+.phenotype-available {
+    background-color: #d4edda; /* Light green */
+}
+.phenotype-missing {
+    background-color: #f8d7da; /* Light red */
+}
+.phenotype-predicted {
+    background-color: #d0e7ff; /* Light blue */
+}
+.phenotype-both {
+    background-color: #c3e6cb; /* Greenish */
+}
+
+
+/* Additional Phenotype Classes */
+.phenotype-high-quality {
+    background-color: #c3e6cb; /* Greenish */
+    color: #155724; /* Dark green text */
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.phenotype-generated {
+    background-color: #d0e7ff; /* Light blue */
+    color: #155724; /* Dark green text */
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+
+
+.section {
+    margin-bottom: 20px;
+}
+.table-wrapper {
+    overflow-x: auto;
+}
+.table-chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+    align-items: stretch; /* Ensures both children stretch to the same height */
+}
+.table-container {
+    flex: 2; /* Tables take twice the space compared to charts */
+    min-width: 300px;
+    margin-right: 20px; /* Space between table and chart */
+}
+.chart-container {
+    flex: 1; /* Charts take proportional space */
+    min-width: 300px;
+    background-color: #f9f9f9;
+    display: flex; /* To allow the canvas to stretch */
+    flex-direction: column;
+}
+.chart-container canvas {
+    flex: 1; /* Makes the canvas fill the chart-container */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    #container {
+    .table-chart-container {
+        flex-direction: column;
+    }
+    .table-container, .chart-container {
+        flex: unset;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+    .chart-container {
+        /* Optionally, set a different height for smaller screens */
+    }
+}
+
+
+
+
+
+
+
+
+
+.phenotype-available {
+    background-color: #d4edda; /* Light green */
+}
+.phenotype-missing {
+    background-color: #f8d7da; /* Light red */
+}
+.phenotype-predicted {
+    background-color: #d0e7ff; /* Light blue */
+}
+.phenotype-both {
+    background-color: #c3e6cb; /* Greenish */
+}
+.phenotype-high-quality {
+    background-color: #c3e6cb; /* Greenish */
+    color: #155724; /* Dark green text */
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.phenotype-generated {
+    background-color: #d0e7ff; /* Light blue */
+    color: #155724; /* Dark green text */
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.dashboard {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin: 20px 0;
+}
+.dashboard-box {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 10px;
+    flex: 1 1 200px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.dashboard-box h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    color: #555;
+}
+.dashboard-box p {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin: 0;
+    color: #333;
+}
+.search-box-container {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    max-width: 1000px;
+    margin: 40px auto;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.search-description {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    color: #555;
+    text-align: center;
+}
+
+.search-form {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+}
+
+.search-input {
+    flex: 1;
+    height: 50px;
+    font-size: 1.2em;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .search-form {
         flex-direction: column;
     }
 
-    #feature-table, #genome-viewer {
+    .search-button {
         width: 100%;
     }
+}
 
-    #feature-table {
-        height: 300px;
+.results-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.results-table th, .results-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    vertical-align: top;
+}
+.results-table th {
+    background-color: #f2f2f2;
+    text-decoration: none;
+    color: inherit;
+    cursor: default;
+}
+.phenotype-filters {
+    margin: 20px 0;
+}
+.phenotype-filter-list {
+    list-style-type: none;
+    padding: 0;
+}
+.phenotype-filter-item {
+    margin-bottom: 10px;
+}
+.phenotype-filter-item > a {
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    color: #007bff;
+}
+.phenotype-values {
+    margin-left: 20px;
+    list-style-type: none;
+    padding: 0;
+}
+.phenotype-values li {
+    margin-bottom: 5px;
+}
+.phenotype-values li a {
+    cursor: pointer;
+    text-decoration: none;
+    color: #007bff;
+}
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.loading-overlay .spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #333;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.phenotype-table {
+    font-size: 0.8em;
+    margin-top: 5px;
+    border-collapse: collapse;
+    width: 100%;
+}
+.phenotype-table td {
+    padding: 2px 4px;
+    border: 1px solid #ddd;
+    word-wrap: break-word;
+}
+.phenotype-available {
+    background-color: #d4edda;
+}
+.phenotype-missing {
+    background-color: #f8d7da;
+}
+.phenotype-header {
+    font-weight: bold;
+    background-color: #e9ecef;
+}
+
+/* Microbe of the Day Styles */
+.microbe-of-the-day-title {
+    width: 100%;
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.microbe-of-the-day {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 30px;
+    margin: 30px 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    flex-wrap: wrap; /* Allows columns to stack on smaller screens */
+}
+
+/* Adjusted columns for better layout */
+.left-column {
+    flex: 2 1 400px; /* Increased width */
+    min-width: 300px;
+}
+
+.right-column {
+    flex: 1 1 250px; /* Reduced width */
+    min-width: 250px;
+}
+
+/* Phenotype Status Overview as a less prominent heading */
+.phenotype-status-overview {
+    font-size: 1.5em; /* Reduced size */
+    margin-bottom: 15px;
+    color: #333;
+}
+
+/* Phenotype Table adjustments */
+.phenotype-overview-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.phenotype-overview-table th, .phenotype-overview-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.phenotype-overview-table th {
+    background-color: #f2f2f2;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .microbe-of-the-day {
+        flex-direction: column;
     }
+}
+
+/* Update Phenotype Status Label */
+.phenotype-high-quality {
+    background-color: #c3e6cb; /* Greenish */
+    color: #155724; /* Dark green text */
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Cas Genes Tags */
+.cas-genes-cell {
+    max-width: 200px; /* Adjust as needed */
+}
+
+.cas-genes-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.cas-gene-tag {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .cas-genes-cell {
+        max-width: 150px; /* Adjust for smaller screens */
+    }
+    
+    .cas-gene-tag {
+        font-size: 0.7em;
+        padding: 1px 4px;
+    }
+}
+
+/* Repeat Regions */
+.repeat-regions-cell {
+    max-width: 250px; /* Adjust as needed */
+    overflow: hidden;
+}
+
+.repeat-method {
+    font-size: 0.85em;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.repeat-method:last-child {
+    margin-bottom: 0;
+}
+
+.repeat-links-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 4px; /* Vertical gap 2px, horizontal gap 4px */
+}
+
+.repeat-link {
+    display: inline-block;
+    padding: 0 3px;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    font-size: 0.8em;
+    text-decoration: none;
+    color: #007bff;
+    white-space: nowrap;
+}
+
+.repeat-link:hover {
+    background-color: #007bff;
+    color: #ffffff;
+}
+
+/* Contig Count */
+.contig-count {
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.contig-count:hover {
+    text-decoration: underline;
 }
